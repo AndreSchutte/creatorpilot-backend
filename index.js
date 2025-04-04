@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const { OpenAI } = require('openai');
 
 // MongoDB Model
-const Transcript = require('./Transcript');
+const Transcript = require('./models/Transcript');
 
 const app = express();
 
