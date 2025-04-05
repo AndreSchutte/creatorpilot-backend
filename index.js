@@ -76,11 +76,15 @@ app.post('/api/login', async (req, res) => {
     if (!match) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign(
-      { userId: user._id, isAdmin: user.isAdmin || false },
+      {
+        userId: user._id,
+        isAdmin: user.isAdmin || false,
+        isOwner: user.isOwner || false, // ✅ ADD THIS
+      },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
-
+    
     console.log('✅ Login successful for:', email);
     res.json({ token });
   } catch (err) {
