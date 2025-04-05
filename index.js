@@ -169,6 +169,45 @@ app.put('/api/admin/toggle-admin/:userId', requireAuth, async (req, res) => {
   }
 });
 
+// ❌ Delete a transcript (authenticated)
+app.delete('/api/transcripts/:id', requireAuth, async (req, res) => {
+  try {
+    const transcript = await Transcript.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user.userId,
+    });
+
+    if (!transcript) {
+      return res.status(404).json({ message: 'Transcript not found or unauthorized' });
+    }
+
+    res.json({ message: 'Transcript deleted' });
+  } catch (err) {
+    console.error('Delete transcript error:', err);
+    res.status(500).json({ message: 'Failed to delete transcript' });
+  }
+});
+
+// ❌ Delete transcript by ID (protected)
+app.delete('/api/history/:id', requireAuth, async (req, res) => {
+  try {
+    const transcript = await Transcript.findOne({
+      _id: req.params.id,
+      userId: req.user.userId, // ensure user owns it
+    });
+
+    if (!transcript) {
+      return res.status(404).json({ message: 'Transcript not found' });
+    }
+
+    await Transcript.findByIdAndDelete(transcript._id);
+    res.json({ message: 'Transcript deleted successfully' });
+  } catch (err) {
+    console.error('❌ Delete error:', err);
+    res.status(500).json({ message: 'Failed to delete transcript' });
+  }
+});
+
 // 🚀 Start Server
 app.listen(process.env.PORT || 3001, () => {
   console.log(`✅ Server running on http://localhost:${process.env.PORT || 3001}`);
