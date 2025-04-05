@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
 
-const transcriptSchema = new mongoose.Schema({
-  text: { type: String, required: true },
-  format: { type: String, default: 'youtube' },
-  result: { type: String },
-  createdAt: { type: Date, default: Date.now }
-});
+const TranscriptSchema = new mongoose.Schema({
+  text: String,
+  format: String,
+  result: String,
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+}, { timestamps: true });
 
-module.exports = mongoose.model('Transcript', transcriptSchema);
+module.exports = mongoose.model('Transcript', TranscriptSchema);
