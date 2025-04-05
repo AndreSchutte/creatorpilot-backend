@@ -148,21 +148,27 @@ app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// 🔁 Admin-only: Toggle admin role
+// 🔁 Owner-only: Toggle admin role
 app.put('/api/admin/toggle-admin/:userId', requireAuth, async (req, res) => {
   try {
     const requestingUser = await User.findById(req.user.userId);
-    if (!requestingUser?.isAdmin) {
-      return res.status(403).json({ error: 'Forbidden: Admins only' });
+
+    if (!requestingUser?.isOwner) {
+      return res.status(403).json({ error: 'Forbidden: Only owner can manage admin roles' });
     }
 
     const user = await User.findById(req.params.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
+    // Prevent changing the owner's own status or another owner's
+    if (user.isOwner) {
+      return res.status(403).json({ error: 'Cannot change owner privileges' });
+    }
+
     user.isAdmin = !user.isAdmin;
     await user.save();
 
-    res.json({ message: `User updated`, user });
+    res.json({ message: 'User role updated', user });
   } catch (err) {
     console.error('Toggle admin error:', err);
     res.status(500).json({ error: 'Internal server error' });
