@@ -54,21 +54,27 @@ app.post('/api/register', async (req, res) => {
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: 'User already exists' });
 
-    const hashed = await bcrypt.hash(password, 10);
-    const newUser = await User.create({ email, password: hashed });
+    const hashed = await bcrypt.hash(password, 10); // ✅ Make sure this is present
+    await User.create({ email, password: hashed }); // ✅ Save hashed password
 
-    // 🔐 Create token after register
+    // Optional: Auto-login after registration
+    const user = await User.findOne({ email });
     const token = jwt.sign(
-      { userId: newUser._id, isAdmin: false, isOwner: false },
+      {
+        userId: user._id,
+        isAdmin: user.isAdmin || false,
+        isOwner: user.isOwner || false,
+      },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    res.status(201).json({ message: 'User created', token }); // ✅ Return token
+    res.status(201).json({ token }); // ✅ Respond with token
   } catch (err) {
     res.status(500).json({ message: 'Register error', error: err.message });
   }
 });
+
 
 
 // 🔑 Login
