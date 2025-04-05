@@ -16,9 +16,11 @@ const requireAuth = require('./middleware/auth');
 
 const app = express();
 
+// Middleware setup
 app.use(cors());
 app.use(express.json());
 
+// Rate limiting
 const limiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
@@ -26,19 +28,24 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// MongoDB
+// MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-}).then(() => console.log('✅ Connected to MongoDB'))
-  .catch((err) => console.error('❌ MongoDB error:', err));
+})
+.then(() => console.log('✅ Connected to MongoDB'))
+.catch((err) => console.error('❌ MongoDB error:', err));
 
-// OpenAI
+mongoose.connection.once('open', () => {
+  console.log('✅ MongoDB connected');
+});
+
+// OpenAI setup
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Registration
+// 🔐 Register
 app.post('/api/register', async (req, res) => {
   const { email, password } = req.body;
 
@@ -55,7 +62,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// Login
+// 🔑 Login
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -74,7 +81,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Generate Chapters (protected)
+// 📚 Generate Chapters (protected route)
 app.post('/api/generate-chapters', requireAuth, async (req, res) => {
   const { transcript, format } = req.body;
 
@@ -104,12 +111,12 @@ app.post('/api/generate-chapters', requireAuth, async (req, res) => {
 
     res.json({ chapters: result });
   } catch (error) {
-    console.error(error);
+    console.error('Chapter generation error:', error);
     res.status(500).json({ error: 'Something went wrong' });
   }
 });
 
-// Start
+// 🚀 Start Server
 app.listen(process.env.PORT || 3001, () => {
   console.log(`✅ Server running on http://localhost:${process.env.PORT || 3001}`);
 });
