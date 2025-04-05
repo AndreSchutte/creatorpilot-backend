@@ -65,18 +65,29 @@ app.post('/api/register', async (req, res) => {
 // 🔑 Login
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
+  console.log('📩 Login attempt for:', email); // log login attempt
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+
+    if (!user) {
+      console.log('❌ User not found');
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ message: 'Invalid credentials' });
+
+    if (!match) {
+      console.log('❌ Password does not match for user:', email);
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
+    console.log('✅ Login successful for:', email);
     res.json({ token });
   } catch (err) {
+    console.error('❌ Login error:', err);
     res.status(500).json({ message: 'Login error', error: err.message });
   }
 });
