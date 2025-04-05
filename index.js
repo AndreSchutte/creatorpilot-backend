@@ -54,8 +54,8 @@ app.post('/api/register', async (req, res) => {
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: 'User already exists' });
 
-    const hashed = await bcrypt.hash(password, 10); // ✅ Make sure this is present
-    await User.create({ email, password: hashed }); // ✅ Save hashed password
+    await User.create({ email, password }); // the schema will hash it automatically
+
 
     // Optional: Auto-login after registration
     const user = await User.findOne({ email });
