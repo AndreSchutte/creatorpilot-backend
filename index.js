@@ -55,13 +55,21 @@ app.post('/api/register', async (req, res) => {
     if (existing) return res.status(400).json({ message: 'User already exists' });
 
     const hashed = await bcrypt.hash(password, 10);
-    await User.create({ email, password: hashed });
+    const newUser = await User.create({ email, password: hashed });
 
-    res.status(201).json({ message: 'User created' });
+    // 🔐 Create token after register
+    const token = jwt.sign(
+      { userId: newUser._id, isAdmin: false, isOwner: false },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({ message: 'User created', token }); // ✅ Return token
   } catch (err) {
     res.status(500).json({ message: 'Register error', error: err.message });
   }
 });
+
 
 // 🔑 Login
 app.post('/api/login', async (req, res) => {
