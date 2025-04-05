@@ -208,6 +208,34 @@ app.delete('/api/history/:id', requireAuth, async (req, res) => {
   }
 });
 
+// 👤 Get user profile
+app.get('/api/profile', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('-password');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// 📝 Update user profile
+app.put('/api/profile', requireAuth, async (req, res) => {
+  const { name, bio } = req.body;
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.name = name;
+    user.bio = bio;
+    await user.save();
+
+    res.json({ message: 'Profile updated' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // 🚀 Start Server
 app.listen(process.env.PORT || 3001, () => {
   console.log(`✅ Server running on http://localhost:${process.env.PORT || 3001}`);
