@@ -13,7 +13,7 @@ const User = require('./models/User');
 
 // Middleware
 const requireAuth = require('./middleware/auth');
-const requireAdmin = require('./middleware/admin'); // 👑 Admin middleware
+const requireAdmin = require('./middleware/admin');
 
 const app = express();
 
@@ -70,17 +70,10 @@ app.post('/api/login', async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-
-    if (!user) {
-      console.log('❌ User not found');
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      console.log('❌ Password mismatch for user:', email);
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
+    if (!match) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign(
       { userId: user._id, isAdmin: user.isAdmin || false },
@@ -131,17 +124,20 @@ app.post('/api/generate-chapters', requireAuth, async (req, res) => {
   }
 });
 
-// 📜 Get transcript history for logged-in user
-app.get('/api/transcripts', requireAuth, async (req, res) => {
+// 📜 Get transcript history (NEW)
+app.get('/api/history', requireAuth, async (req, res) => {
   try {
-    const transcripts = await Transcript.find({ userId: req.user.userId }).sort({ createdAt: -1 });
-    res.json(transcripts);
+    const history = await Transcript.find({ userId: req.user.userId })
+      .sort({ createdAt: -1 })
+      .select('text format result createdAt');
+    res.json(history);
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch transcript history' });
+    console.error('History fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch transcript history' });
   }
 });
 
-// 👑 Admin-only route: View all users
+// 👑 Admin-only: View all users
 app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
   try {
     const users = await User.find().select('-password');
@@ -152,7 +148,7 @@ app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// 🔁 Admin: Toggle admin role
+// 🔁 Admin-only: Toggle admin role
 app.put('/api/admin/toggle-admin/:userId', requireAuth, async (req, res) => {
   try {
     const requestingUser = await User.findById(req.user.userId);
