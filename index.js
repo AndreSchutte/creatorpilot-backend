@@ -13,6 +13,7 @@ const User = require('./models/User');
 
 // Middleware
 const requireAuth = require('./middleware/auth');
+const requireAdmin = require('./middleware/admin'); // 👈 NEW
 
 const app = express();
 
@@ -65,7 +66,7 @@ app.post('/api/register', async (req, res) => {
 // 🔑 Login
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  console.log('📩 Login attempt for:', email); // log login attempt
+  console.log('📩 Login attempt for:', email);
 
   try {
     const user = await User.findOne({ email });
@@ -76,13 +77,16 @@ app.post('/api/login', async (req, res) => {
     }
 
     const match = await bcrypt.compare(password, user.password);
-
     if (!match) {
-      console.log('❌ Password does not match for user:', email);
+      console.log('❌ Password mismatch for user:', email);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(
+      { userId: user._id, isAdmin: user.isAdmin || false },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     console.log('✅ Login successful for:', email);
     res.json({ token });
@@ -92,7 +96,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// 📚 Generate Chapters (protected route)
+// 📚 Generate Chapters (protected)
 app.post('/api/generate-chapters', requireAuth, async (req, res) => {
   const { transcript, format } = req.body;
 
@@ -124,6 +128,17 @@ app.post('/api/generate-chapters', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Chapter generation error:', error);
     res.status(500).json({ error: 'Something went wrong' });
+  }
+});
+
+// 👑 Admin-only route
+app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const users = await User.find().select('-password');
+    res.json(users);
+  } catch (err) {
+    console.error('Admin fetch error:', err);
+    res.status(500).json({ message: 'Failed to fetch users' });
   }
 });
 
