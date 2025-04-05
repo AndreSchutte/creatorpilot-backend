@@ -13,7 +13,7 @@ const User = require('./models/User');
 
 // Middleware
 const requireAuth = require('./middleware/auth');
-const requireAdmin = require('./middleware/admin'); // 👈 NEW
+const requireAdmin = require('./middleware/admin'); // 👑 Admin middleware
 
 const app = express();
 
@@ -131,7 +131,17 @@ app.post('/api/generate-chapters', requireAuth, async (req, res) => {
   }
 });
 
-// 👑 Admin-only route
+// 📜 Get transcript history for logged-in user
+app.get('/api/transcripts', requireAuth, async (req, res) => {
+  try {
+    const transcripts = await Transcript.find({ userId: req.user.userId }).sort({ createdAt: -1 });
+    res.json(transcripts);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch transcript history' });
+  }
+});
+
+// 👑 Admin-only route: View all users
 app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
   try {
     const users = await User.find().select('-password');
@@ -139,6 +149,27 @@ app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('Admin fetch error:', err);
     res.status(500).json({ message: 'Failed to fetch users' });
+  }
+});
+
+// 🔁 Admin: Toggle admin role
+app.put('/api/admin/toggle-admin/:userId', requireAuth, async (req, res) => {
+  try {
+    const requestingUser = await User.findById(req.user.userId);
+    if (!requestingUser?.isAdmin) {
+      return res.status(403).json({ error: 'Forbidden: Admins only' });
+    }
+
+    const user = await User.findById(req.params.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.isAdmin = !user.isAdmin;
+    await user.save();
+
+    res.json({ message: `User updated`, user });
+  } catch (err) {
+    console.error('Toggle admin error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
