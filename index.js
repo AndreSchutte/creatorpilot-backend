@@ -129,11 +129,13 @@ app.post('/api/generate-chapters', requireAuth, async (req, res) => {
     const result = chatCompletion.choices[0].message.content;
 
     await Transcript.create({
-      text: transcript,
+      text,
       format,
-      result,
+      result: generatedChapters,
+      tool: 'generate-chapters', // ✅ Add this line
       userId: req.user.userId,
     });
+    
 
     res.json({ chapters: result });
   } catch (error) {
@@ -142,18 +144,17 @@ app.post('/api/generate-chapters', requireAuth, async (req, res) => {
   }
 });
 
-// 📜 Get transcript history (NEW)
+// 📜 Get history (NEW)
 app.get('/api/history', requireAuth, async (req, res) => {
   try {
-    const history = await Transcript.find({ userId: req.user.userId })
-      .sort({ createdAt: -1 })
-      .select('text format result createdAt');
+    const history = await Transcript.find({ userId: req.user.userId }).sort({ createdAt: -1 });
     res.json(history);
   } catch (err) {
-    console.error('History fetch error:', err);
-    res.status(500).json({ error: 'Failed to fetch transcript history' });
+    console.error('❌ History fetch error:', err);
+    res.status(500).json({ message: 'Failed to fetch history' });
   }
 });
+
 
 // 👑 Admin-only: View all users
 app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
