@@ -129,12 +129,14 @@ app.post('/api/generate-chapters', requireAuth, async (req, res) => {
     const result = chatCompletion.choices[0].message.content;
 
     await Transcript.create({
-      text,
-      format,
-      result: generatedChapters,
-      tool: 'generate-chapters', // ✅ Add this line
-      userId: req.user.userId,
+     text: transcript,
+     format,
+     result,
+     tool: 'generate-chapters',
+     userId: req.user.userId,
     });
+
+    
     
 
     res.json({ chapters: result });
