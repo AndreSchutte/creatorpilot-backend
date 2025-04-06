@@ -267,32 +267,39 @@ app.put('/api/profile', requireAuth, async (req, res) => {
 app.post('/api/generate-titles', requireAuth, async (req, res) => {
   const { transcript } = req.body;
 
-  if (!transcript || transcript.trim().length < 20) {
-    return res.status(400).json({ error: 'Transcript is too short or missing.' });
-  }
-
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
-          content: 'You are a creative assistant that generates 5 catchy YouTube video titles based on transcripts.'
+          content: 'You are a helpful assistant that generates catchy YouTube titles.',
         },
         {
           role: 'user',
-          content: `Transcript:\n${transcript}`
-        }
-      ]
+          content: `Generate 5 YouTube titles for this transcript:\n\n${transcript}`,
+        },
+      ],
     });
 
     const titles = completion.choices[0].message.content;
+
+    // ✅ Save to DB
+    await Transcript.create({
+      text: transcript,
+      format: 'titles',
+      result: titles,
+      tool: 'generate-titles',
+      userId: req.user.userId,
+    });
+
     res.json({ titles });
   } catch (err) {
-    console.error('Generate titles error:', err);
-    res.status(500).json({ error: 'Failed to generate titles' });
+    console.error('❌ Title generation error:', err);
+    res.status(500).json({ message: 'Title generation failed' });
   }
 });
+
 
 // 🚀 Start Server
 app.listen(process.env.PORT || 3001, () => {
