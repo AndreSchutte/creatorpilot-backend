@@ -260,6 +260,37 @@ app.put('/api/profile', requireAuth, async (req, res) => {
   }
 });
 
+// 📝 Generate YouTube Titles from Transcript
+app.post('/api/generate-titles', requireAuth, async (req, res) => {
+  const { transcript } = req.body;
+
+  if (!transcript || transcript.trim().length < 20) {
+    return res.status(400).json({ error: 'Transcript is too short or missing.' });
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a creative assistant that generates 5 catchy YouTube video titles based on transcripts.'
+        },
+        {
+          role: 'user',
+          content: `Transcript:\n${transcript}`
+        }
+      ]
+    });
+
+    const titles = completion.choices[0].message.content;
+    res.json({ titles });
+  } catch (err) {
+    console.error('Generate titles error:', err);
+    res.status(500).json({ error: 'Failed to generate titles' });
+  }
+});
+
 // 🚀 Start Server
 app.listen(process.env.PORT || 3001, () => {
   console.log(`✅ Server running on http://localhost:${process.env.PORT || 3001}`);
